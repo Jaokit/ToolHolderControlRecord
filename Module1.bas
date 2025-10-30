@@ -3,23 +3,46 @@ Option Explicit
 
 Public Const PWD As String = "1234"
 Public Const START_ROW As Long = 7
+Public Const TARGET_SHEET As String = "For Lathe Tooling (USEd)"
+
+Private Function GetTargetSheet() As Worksheet
+    On Error Resume Next
+    Set GetTargetSheet = ThisWorkbook.Worksheets(TARGET_SHEET)
+    On Error GoTo 0
+End Function
 
 Public Sub ApplyPermissionsAll(Optional ByVal ws As Worksheet = Nothing)
     Dim r As Long, v As String, kVal As String, lr As Long
-    If ws Is Nothing Then Set ws = ActiveSheet
 
-    On Error Resume Next
-    ws.Unprotect Password:=PWD
-    On Error GoTo 0
+    If ws Is Nothing Then Set ws = GetTargetSheet()
+    If ws Is Nothing Then
+        MsgBox "Sheet '" & TARGET_SHEET & "' not found.", vbCritical
+        Exit Sub
+    End If
+    If ws.Name <> TARGET_SHEET Then Exit Sub
+
+    If ws.ProtectContents Then
+        On Error Resume Next
+        ws.Unprotect Password:=PWD
+        If ws.ProtectContents Then ws.Unprotect
+        On Error GoTo 0
+        If ws.ProtectContents Then
+            MsgBox "Cannot unprotect '" & ws.Name & _
+                   "'. Password may be different.", vbCritical
+            Exit Sub
+        End If
+    End If
 
     ws.Cells.Locked = True
-    ws.Range("C" & START_ROW & ":C" & Rows.Count).Locked = False
-    ws.Range("K" & START_ROW & ":K" & Rows.Count).Locked = False
-    ws.Range("L" & START_ROW & ":L" & Rows.Count).Locked = False
-    ws.Range("M" & START_ROW & ":M" & Rows.Count).Locked = False
 
     lr = LastUsedRow(ws, START_ROW)
-    For r = START_ROW To lr
+    ws.Range("C" & START_ROW & ":C" & lr).Locked = False
+    ws.Range("K" & START_ROW & ":K" & lr).Locked = False
+    ws.Range("L" & START_ROW & ":L" & lr).Locked = False
+    ws.Range("M" & START_ROW & ":M" & lr).Locked = False
+
+    Dim rEnd As Long: rEnd = lr
+    For r = START_ROW To rEnd
         v = UCase$(Trim$(ws.Cells(r, "C").Value))
         kVal = UCase$(Trim$(ws.Cells(r, "K").Value))
 
@@ -52,7 +75,9 @@ Private Function LastUsedRow(ws As Worksheet, startRow As Long) As Long
 End Function
 
 Public Sub UnlockSheet(Optional ByVal ws As Worksheet = Nothing)
-    If ws Is Nothing Then Set ws = ActiveSheet
+    If ws Is Nothing Then Set ws = GetTargetSheet()
+    If ws Is Nothing Or ws.Name <> TARGET_SHEET Then Exit Sub
+
     Dim p As String: p = InputBox("Enter password to unprotect the sheet:", "Unlock")
     If p = vbNullString Then Exit Sub
     On Error GoTo Wrong
@@ -64,7 +89,9 @@ Wrong:
 End Sub
 
 Public Sub ProtectSheet(Optional ByVal ws As Worksheet = Nothing)
-    If ws Is Nothing Then Set ws = ActiveSheet
+    If ws Is Nothing Then Set ws = GetTargetSheet()
+    If ws Is Nothing Or ws.Name <> TARGET_SHEET Then Exit Sub
+
     ws.Protect Password:=PWD, UserInterfaceOnly:=True, _
         DrawingObjects:=True, Contents:=True, Scenarios:=True, _
         AllowFormattingCells:=True, AllowFiltering:=True
