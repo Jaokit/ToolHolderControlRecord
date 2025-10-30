@@ -8,9 +8,9 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub Workbook_Open()
-    ApplyPermissionsAll
+    ApplyPermissionsAll ActiveSheet
 End Sub
 
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
-    If Sh.Name = SHEET_NAME Then ApplyPermissionsAll
+    ApplyPermissionsAll Sh
 End Sub

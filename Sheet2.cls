@@ -9,17 +9,15 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 
-Private Const R_STATUS As String = "C5:C16"
-Private Const R_STORE  As String = "K5:K16"
-Private Const R_WARN   As String = "L5:M16"
+Private Const START_ROW As Long = 7
 
 Private Sub Worksheet_Change(ByVal Target As Range)
     On Error GoTo ExitH
     Application.EnableEvents = False
 
-    Dim rng As Range, c As Range, r As Long
+    Dim rng As Range, c As Range
 
-    Set rng = Intersect(Target, Me.Range(R_STATUS))
+    Set rng = Intersect(Target, Me.Range("C" & START_ROW & ":C" & Rows.Count))
     If Not rng Is Nothing Then
         For Each c In rng.Cells
             ApplyStatusRules c.Row
@@ -27,7 +25,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         Next c
     End If
 
-    Set rng = Intersect(Target, Me.Range(R_STORE))
+    Set rng = Intersect(Target, Me.Range("K" & START_ROW & ":K" & Rows.Count))
     If Not rng Is Nothing Then
         For Each c In rng.Cells
             ApplyStoreRules c.Row, True
@@ -35,7 +33,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         Next c
     End If
 
-    Set rng = Intersect(Target, Me.Range(R_WARN))
+    Set rng = Intersect(Target, Me.Range("L" & START_ROW & ":M" & Rows.Count))
     If Not rng Is Nothing Then
         For Each c In rng.Cells
             UpdateLMCellHighlight c.Row, c.Column
@@ -50,9 +48,11 @@ End Sub
 Private Sub ApplyStatusRules(ByVal r As Long)
     Dim v As String: v = UCase$(Trim$(Me.Cells(r, "C").Value))
     Dim band As Range: Set band = Me.Range("B" & r & ":M" & r)
-
     If v = "NG" Then
         band.Interior.Color = RGB(217, 217, 217)
+        Me.Range("K" & r & ":M" & r).ClearContents
+    ElseIf v = "RP" Then
+        band.Interior.Color = vbYellow
         Me.Range("K" & r & ":M" & r).ClearContents
     Else
         band.Interior.ColorIndex = xlColorIndexNone
@@ -60,7 +60,7 @@ Private Sub ApplyStatusRules(ByVal r As Long)
 End Sub
 
 Private Sub UpdateLocksForRow(ByVal r As Long)
-    If r < 5 Or r > 16 Then Exit Sub
+    If r < START_ROW Then Exit Sub
 
     Dim ws As Worksheet, v As String, kVal As String
     Set ws = Me
@@ -71,7 +71,8 @@ Private Sub UpdateLocksForRow(ByVal r As Long)
 
     ws.Range("B" & r & ":M" & r).Locked = True
     ws.Cells(r, "C").Locked = False
-    If v = "NG" Then
+
+    If v = "NG" Or v = "RP" Then
         ws.Range("K" & r & ":M" & r).Locked = True
     Else
         ws.Cells(r, "K").Locked = False
@@ -90,7 +91,6 @@ End Sub
 
 Private Sub ApplyStoreRules(ByVal r As Long, ByVal showPopup As Boolean)
     Dim kVal As String: kVal = UCase$(Trim$(Me.Cells(r, "K").Value))
-
     Select Case kVal
         Case "YES"
             Me.Range("L" & r & ":M" & r).ClearContents

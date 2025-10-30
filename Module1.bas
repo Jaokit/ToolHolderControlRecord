@@ -2,24 +2,28 @@ Attribute VB_Name = "Module1"
 Option Explicit
 
 Public Const PWD As String = "1234"
-Public Const SHEET_NAME As String = "For Lathe Tooling"
+Public Const START_ROW As Long = 7
 
-Public Sub ApplyPermissionsAll()
-    Dim ws As Worksheet, r As Long, v As String, kVal As String
-    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+Public Sub ApplyPermissionsAll(Optional ByVal ws As Worksheet = Nothing)
+    Dim r As Long, v As String, kVal As String, lr As Long
+    If ws Is Nothing Then Set ws = ActiveSheet
 
     On Error Resume Next
     ws.Unprotect Password:=PWD
     On Error GoTo 0
 
     ws.Cells.Locked = True
-    ws.Range("C5:C16,K5:K16,L5:L16,M5:M16").Locked = False
+    ws.Range("C" & START_ROW & ":C" & Rows.Count).Locked = False
+    ws.Range("K" & START_ROW & ":K" & Rows.Count).Locked = False
+    ws.Range("L" & START_ROW & ":L" & Rows.Count).Locked = False
+    ws.Range("M" & START_ROW & ":M" & Rows.Count).Locked = False
 
-    For r = 5 To 16
+    lr = LastUsedRow(ws, START_ROW)
+    For r = START_ROW To lr
         v = UCase$(Trim$(ws.Cells(r, "C").Value))
         kVal = UCase$(Trim$(ws.Cells(r, "K").Value))
 
-        If v = "NG" Then
+        If v = "NG" Or v = "RP" Then
             ws.Range("B" & r & ":M" & r).Locked = True
             ws.Cells(r, "C").Locked = False
         Else
@@ -39,10 +43,17 @@ Public Sub ApplyPermissionsAll()
     ws.EnableSelection = xlNoRestrictions
 End Sub
 
-Public Sub UnlockSheet()
-    Dim ws As Worksheet, p As String
-    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
-    p = InputBox("Enter password to unprotect the sheet:", "Unlock")
+Private Function LastUsedRow(ws As Worksheet, startRow As Long) As Long
+    Dim f As Range
+    On Error Resume Next
+    Set f = ws.Cells.Find("*", ws.[A1], xlFormulas, , xlByRows, xlPrevious)
+    On Error GoTo 0
+    LastUsedRow = IIf(f Is Nothing, startRow, Application.Max(f.Row, startRow))
+End Function
+
+Public Sub UnlockSheet(Optional ByVal ws As Worksheet = Nothing)
+    If ws Is Nothing Then Set ws = ActiveSheet
+    Dim p As String: p = InputBox("Enter password to unprotect the sheet:", "Unlock")
     If p = vbNullString Then Exit Sub
     On Error GoTo Wrong
     ws.Unprotect Password:=p
@@ -52,9 +63,8 @@ Wrong:
     MsgBox "Wrong password.", vbCritical
 End Sub
 
-Public Sub ProtectSheet()
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets(SHEET_NAME)
+Public Sub ProtectSheet(Optional ByVal ws As Worksheet = Nothing)
+    If ws Is Nothing Then Set ws = ActiveSheet
     ws.Protect Password:=PWD, UserInterfaceOnly:=True, _
         DrawingObjects:=True, Contents:=True, Scenarios:=True, _
         AllowFormattingCells:=True, AllowFiltering:=True
